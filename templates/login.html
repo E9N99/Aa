@@ -1,1 +1,18 @@
-<!-- login.html template -->
+{% extends 'base.html' %}
+{% block title %}تسجيل الدخول{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card p-4 shadow-sm">
+      <h4 class="mb-3">تسجيل الدخول برقم الهاتف</h4>
+      <form method="post" action="{{ url_for('login') }}">
+        <div class="mb-3">
+          <label class="form-label">رقم الهاتف</label>
+          <input name="phone" class="form-control" placeholder="مثال: +964770xxxxxxx">
+        </div>
+        <button class="btn btn-primary">إرسال رمز التحقق</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
