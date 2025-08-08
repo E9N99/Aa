@@ -1,1 +1,31 @@
-<!-- dashboard.html template -->
+{% extends 'base.html' %}
+{% block title %}لوحة التحكم{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-3">
+    <div class="list-group">
+      <a class="list-group-item list-group-item-action active">الرئيسية</a>
+      <a class="list-group-item list-group-item-action" href="#" id="open-chat">تواصل مع الدعم</a>
+    </div>
+  </div>
+  <div class="col-md-9">
+    <div class="card p-3 shadow-sm">
+      <h4>مرحبا، {{ phone }}</h4>
+      <p>هنا تمثل لوحة تحكم مبدئية. اضغط "تواصل مع الدعم" لفتح الشات.</p>
+      <div id="chat-area" style="display:none;">
+        {% include 'chat.html' %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+<script src="/static/js/chat.js"></script>
+<script>
+  document.getElementById('open-chat').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('chat-area').style.display = 'block';
+    initChat('{{ phone }}');
+  });
+</script>
+{% endblock %}
