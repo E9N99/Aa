@@ -1,1 +1,18 @@
-<!-- verify.html template -->
+{% extends 'base.html' %}
+{% block title %}تحقق من الرمز{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card p-4 shadow-sm">
+      <h4 class="mb-3">أدخل رمز التحقق</h4>
+      <form method="post" action="{{ url_for('verify') }}">
+        <div class="mb-3">
+          <label class="form-label">رمز التحقق</label>
+          <input name="otp" class="form-control" placeholder="6 أرقام">
+        </div>
+        <button class="btn btn-success">تأكيد</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
