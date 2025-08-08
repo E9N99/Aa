@@ -1,0 +1,6 @@
+Flask==2.3.4
+python-dotenv==1.0.0
+flask-socketio==6.3.2
+eventlet==0.33.4
+twilio==8.4.1
+gunicorn==20.1.0
