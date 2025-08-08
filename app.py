@@ -1,64 +1,54 @@
 import os
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
-from flask import (
-    Flask, render_template, request, redirect, url_for, session, flash, jsonify
-)
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask_socketio import SocketIO, emit, join_room
 
-# Load env
+# تحميل متغيرات البيئة
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev_secret')
-socketio = SocketIO(app)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
 
-# Twilio config
+socketio = SocketIO(app, async_mode='eventlet')
+
+# إعدادات Twilio
 TWILIO_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_FROM = os.getenv('TWILIO_FROM_NUMBER')
 OTP_EXPIRY = int(os.getenv('OTP_EXPIRY_SECONDS', '300'))
 
-# If Twilio is configured, import client
 _twilio_client = None
 if TWILIO_SID and TWILIO_TOKEN:
     try:
         from twilio.rest import Client
         _twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
     except Exception as e:
-        print('Twilio client init failed:', e)
+        print('Twilio init error:', e)
 
-# In-memory OTP store (demo only)
-OTP_STORE = {}  # phone -> {code, expires_at, attempts}
-CHAT_HISTORY = []  # simple chat history
+# تخزين مؤقت للـ OTP والرسائل (للشرح فقط)
+OTP_STORE = {}  # رقم الهاتف -> {code, expires_at, sent}
+CHAT_HISTORY = []
 
-# Util: generate OTP
 def generate_otp(length=6):
     range_start = 10**(length-1)
     range_end = (10**length) - 1
     return str(random.randint(range_start, range_end))
 
-# Util: send SMS (uses Twilio if available, otherwise prints)
 def send_sms(to_number, message):
     if _twilio_client:
         try:
-            msg = _twilio_client.messages.create(
-                body=message,
-                from_=TWILIO_FROM,
-                to=to_number
-            )
+            _twilio_client.messages.create(body=message, from_=TWILIO_FROM, to=to_number)
             return True
         except Exception as e:
             print('Twilio send failed:', e)
             return False
     else:
-        # For testing: print OTP to console
         print(f"[SMS MOCK] To: {to_number} | Message: {message}")
         return True
 
-# Routes
 @app.route('/')
 def index():
     if session.get('user_phone'):
@@ -72,7 +62,6 @@ def login():
         flash('يرجى إدخال رقم الهاتف')
         return redirect(url_for('index'))
 
-    # rate limit simple: max 5 OTP per phone in memory
     entry = OTP_STORE.get(phone, {'sent': 0})
     if entry.get('sent', 0) >= 10:
         flash('تم الوصول لحد الإرسال المسموح. حاول لاحقاً.')
@@ -113,10 +102,8 @@ def verify():
         return redirect(url_for('index'))
 
     if user_code == record['code']:
-        # ناجح
         session.pop('pending_phone', None)
         session['user_phone'] = phone
-        # remove used OTP
         OTP_STORE.pop(phone, None)
         return redirect(url_for('dashboard'))
     else:
@@ -134,14 +121,12 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# Simple API for chat history
 @app.route('/chat_history')
 def chat_history():
     if not session.get('user_phone'):
         return jsonify({'ok': False}), 403
     return jsonify({'ok': True, 'history': CHAT_HISTORY[-50:]})
 
-# SocketIO events for chat
 @socketio.on('join')
 def on_join(data):
     room = 'support_room'
@@ -158,5 +143,4 @@ def handle_message(data):
     emit('message', msg, broadcast=True)
 
 if __name__ == '__main__':
-    # dev server
     socketio.run(app, host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
